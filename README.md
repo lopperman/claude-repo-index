@@ -7,6 +7,8 @@ sparklines, and expandable READMEs.
 
 Local-only: no network calls, no GitHub API, no `git fetch`. Works with private repos.
 
+![Example repo-index output](images/repo-index.png)
+
 ## Install
 
 ```
