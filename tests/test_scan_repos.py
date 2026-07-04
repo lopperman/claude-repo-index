@@ -77,12 +77,42 @@ def test_find_repos(fx: Path):
     assert found == {"alpha", "bravo", "charlie"}, found
 
 
+def test_alpha_status(fx: Path):
+    d = sr.collect_repo(fx / "work" / "alpha", fx)
+    assert d["name"] == "alpha" and d["rel_path"] == "work/alpha" and d["parent"] == "work"
+    assert d["branch"] == "main" and not d["dirty"] and d["stashes"] == 0
+    assert d["has_upstream"] and d["ahead"] == 1 and d["behind"] == 0
+    assert d["commit_count"] == 2
+    assert d["last_commit"] and d["last_commit"]["message"] == "second"
+    assert d["modified_ts"] > 0
+
+
+def test_bravo_dirty_stash_remote(fx: Path):
+    d = sr.collect_repo(fx / "work" / "bravo", fx)
+    assert d["dirty"] and d["stashes"] == 1
+    assert not d["has_upstream"] and d["ahead"] == 0 and d["behind"] == 0
+    assert d["remote_url"] == "https://github.com/lopperman/bravo"
+
+
+def test_charlie_content(fx: Path):
+    d = sr.collect_repo(fx / "grp" / "charlie", fx)
+    assert d["remote_url"] is None and d["parent"] == "grp"
+    assert d["language"] == "Python" and d["lang_color"] == "#3572A5"
+    assert d["description"] == "A test repo called charlie."
+    assert d["readme"].startswith("# charlie")
+    assert len(d["sparkline"]) == 12 and sum(d["sparkline"]) >= 1
+    assert d["size_bytes"] > 0
+
+
 def main():
     tmp = Path(tempfile.mkdtemp(prefix="repoindex-test-"))
     try:
         fx = build_fixture(tmp)
         test_normalize_remote()
         test_find_repos(fx)
+        test_alpha_status(fx)
+        test_bravo_dirty_stash_remote(fx)
+        test_charlie_content(fx)
         print("all tests passed")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
