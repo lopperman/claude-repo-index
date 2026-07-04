@@ -104,6 +104,34 @@ def test_charlie_content(fx: Path):
     assert d["size_bytes"] > 0
 
 
+def test_cli_writes_html(fx: Path):
+    r = subprocess.run([sys.executable, str(SCRIPTS / "scan_repos.py"), str(fx)],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    assert "3 repos" in r.stdout
+    html = (fx / "repo-index.html").read_text()
+    for name in ("alpha", "bravo", "charlie"):
+        assert name in html
+    # self-contained: no external scripts/stylesheets
+    assert "<script src" not in html and "stylesheet" not in html
+    assert "https://github.com/lopperman/bravo" in html
+
+
+def test_cli_bad_dir():
+    r = subprocess.run([sys.executable, str(SCRIPTS / "scan_repos.py"), "/nope/does-not-exist"],
+                       capture_output=True, text=True)
+    assert r.returncode == 2 and "not a directory" in r.stderr
+
+
+def test_cli_empty_dir(tmp: Path):
+    empty = tmp / "empty"
+    empty.mkdir()
+    r = subprocess.run([sys.executable, str(SCRIPTS / "scan_repos.py"), str(empty)],
+                       capture_output=True, text=True)
+    assert r.returncode == 0 and "0 repos" in r.stdout
+    assert (empty / "repo-index.html").exists()
+
+
 def main():
     tmp = Path(tempfile.mkdtemp(prefix="repoindex-test-"))
     try:
@@ -113,6 +141,9 @@ def main():
         test_alpha_status(fx)
         test_bravo_dirty_stash_remote(fx)
         test_charlie_content(fx)
+        test_cli_writes_html(fx)
+        test_cli_bad_dir()
+        test_cli_empty_dir(tmp)
         print("all tests passed")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
