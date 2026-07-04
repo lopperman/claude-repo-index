@@ -53,6 +53,10 @@ def build_fixture(tmp: Path) -> Path:
     make_repo(root / "grp" / "charlie")
     # decoy repo inside node_modules: must be skipped
     make_repo(root / "work" / "node_modules" / "decoy")
+    # hidden dir containing a repo: must be skipped
+    make_repo(root / ".hidden" / "ghost")
+    # symlinked dir pointing at a repo: must not be followed
+    (root / "link-to-charlie").symlink_to(root / "grp" / "charlie")
     # plain folder, not a repo
     (root / "notarepo").mkdir(parents=True)
     return root
