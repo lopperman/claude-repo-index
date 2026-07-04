@@ -132,6 +132,48 @@ def test_cli_empty_dir(tmp: Path):
     assert (empty / "repo-index.html").exists()
 
 
+def test_build_html_hostile_content():
+    hostile = {
+        "name": "<img src=x onerror=alert(1)>", "path": "/tmp/h", "rel_path": "h",
+        "parent": ".", "remote_url": None, "branch": '"><script>alert(1)</script>',
+        "dirty": True, "stashes": 0, "ahead": 0, "behind": 0, "has_upstream": False,
+        "last_commit": {"date": "2026-01-01T00:00:00+00:00", "message": "</script><script>alert(1)</script>", "author": "x"},
+        "modified_ts": 1.0, "language": None, "lang_color": "#8b949e",
+        "size_bytes": 1, "commit_count": 1, "sparkline": [0] * 12,
+        "description": "</script> not closed", "readme": "<!--<script>\n# boom\nno closing comment",
+    }
+    html = sr.build_html([hostile], Path("/tmp"))
+    payload_line = html.split("const DATA=", 1)[1].splitlines()[0]
+    assert "<" not in payload_line, "raw < must never appear in the JSON payload"
+    assert "\\u003c" in payload_line
+    assert "<img src=x" not in html
+
+
+def test_broken_repo_skipped(fx: Path):
+    import io
+    from contextlib import redirect_stderr, redirect_stdout
+    orig = sr.collect_repo
+    state = {"n": 0}
+
+    def boom(repo, root):
+        state["n"] += 1
+        if state["n"] == 1:
+            raise RuntimeError("synthetic failure")
+        return orig(repo, root)
+
+    sr.collect_repo = boom
+    err, out = io.StringIO(), io.StringIO()
+    try:
+        with redirect_stderr(err), redirect_stdout(out):
+            rc = sr.main([str(fx), "-o", str(fx / "skip-test.html")])
+    finally:
+        sr.collect_repo = orig
+    assert rc == 0
+    assert "skip" in err.getvalue() and "synthetic failure" in err.getvalue()
+    assert "2 repos" in out.getvalue()
+    assert (fx / "skip-test.html").exists()
+
+
 def main():
     tmp = Path(tempfile.mkdtemp(prefix="repoindex-test-"))
     try:
@@ -144,6 +186,8 @@ def main():
         test_cli_writes_html(fx)
         test_cli_bad_dir()
         test_cli_empty_dir(tmp)
+        test_build_html_hostile_content()
+        test_broken_repo_skipped(fx)
         print("all tests passed")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

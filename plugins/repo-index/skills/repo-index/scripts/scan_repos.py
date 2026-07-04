@@ -56,6 +56,7 @@ def normalize_remote(url):
     if m:
         return f"https://{m.group(1)}/{m.group(2)}"
     if url.startswith(("http://", "https://")):
+        url = re.sub(r"^(https?://)[^/@]+@", r"\1", url)
         return re.sub(r"\.git$", "", url)
     return None
 
@@ -323,7 +324,7 @@ const DATA=__DATA__;
 DATA.forEach((r,i)=>{r._i=i;r._hay=r.name+"\n"+r.rel_path+"\n"+r.description+"\n"+r.readme;});
 const state={q:"",sort:"modified",attention:false,lang:null,parent:""};
 
-function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
 function matcher(q){
   const terms=q.trim().split(/\s+/).filter(Boolean).map(t=>
     new RegExp(t.replace(/[.+?^${}()|[\]\\]/g,"\\$&").replace(/\*/g,".*"),"i"));
@@ -475,7 +476,7 @@ init();
 
 
 def build_html(repos, root: Path) -> str:
-    payload = json.dumps(repos, separators=(",", ":")).replace("</", "<\\/")
+    payload = json.dumps(repos, separators=(",", ":")).replace("<", "\\u003c")
     return (HTML_TEMPLATE
             .replace("__ROOT__", escape(str(root)))
             .replace("__GENERATED__", datetime.now().strftime("%Y-%m-%d %H:%M"))
