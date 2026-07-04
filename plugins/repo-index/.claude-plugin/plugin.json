@@ -1,0 +1,5 @@
+{
+  "name": "repo-index",
+  "description": "Scan a folder recursively for local git repositories and generate a self-contained interactive HTML index — search, sort, status badges, activity sparklines, and expandable READMEs.",
+  "version": "0.1.0"
+}

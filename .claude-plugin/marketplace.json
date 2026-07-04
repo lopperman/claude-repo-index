@@ -1,0 +1,13 @@
+{
+  "name": "claude-repo-index",
+  "owner": {
+    "name": "Paul Brower"
+  },
+  "plugins": [
+    {
+      "name": "repo-index",
+      "source": "./plugins/repo-index",
+      "description": "Scan a folder for local git repos and generate a searchable, self-contained HTML index page."
+    }
+  ]
+}
